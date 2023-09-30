@@ -7,7 +7,7 @@
 using namespace std;
 
 // Window dimensions
-const int WINDOW_WIDTH = 720;
+const int WINDOW_WIDTH = 1280;
 const int WINDOW_HEIGHT = 720;
 // this resolution is 16:9
 
@@ -83,14 +83,9 @@ private:
 
 // Draw a pixel at the given coordinates with the given color
 void drawPixel(int x, int y, Particle::Color color) {
-
-	// Map from pixel coordinates to OpenGL coordinates
-	float glX = (float)x / (float)WINDOW_WIDTH * 2.0f - 1.0f;
-	float glY = (float)y / (float)WINDOW_HEIGHT * 2.0f - 1.0f;
-
 	glBegin(GL_POINTS);
 	glColor3f(color.r, color.g, color.b);
-	glVertex2f(glX, glY);
+	glVertex2f(x, y);
 	glEnd();
 }
 
@@ -215,6 +210,11 @@ int main() {
 	// Load OpenGL functions using GLAD
 	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
+	// Switch from normalized coordinates to pixel coordinates
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, 1);
+
 	// Create a 2D array of pixels to represent the screen
 	Particle **screen = new Particle *[WINDOW_HEIGHT];
 	// Initialize the screen to be empty
@@ -224,7 +224,6 @@ int main() {
 			screen[y][x] = Particle();
 		}
 	}
-	// FIXME: Currently set to a square because there is an error when using 1280x720, one of these uses of width and height is inverted somewhere. Likeliest culprit is the drawPixel function
 
 	// Main loop
 	while (!glfwWindowShouldClose(window)) {
@@ -234,42 +233,36 @@ int main() {
 		glClearColor(bgColor.r, bgColor.g, bgColor.b, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		// // First update particle positions
-		// for (int y = 0; y < WINDOW_HEIGHT; y++) {
-		// 	for (int x = 0; x < WINDOW_WIDTH; x++) {
-		// 		Particle *above = y > 0 ? &screen[y - 1][x] : nullptr;
-		// 		Particle *below = y < WINDOW_HEIGHT - 1 ? &screen[y + 1][x] : nullptr;
-		// 		Particle *left = x > 0 ? &screen[y][x - 1] : nullptr;
-		// 		Particle *right = x < WINDOW_WIDTH - 1 ? &screen[y][x + 1] : nullptr;
-
-		// 		screen[y][x].update(above, below, left, right);
-		// 	}
-		// }
-
-		// // Then render the particles
-		// for (int y = 0; y < WINDOW_HEIGHT; y++) {
-		// 	for (int x = 0; x < WINDOW_WIDTH; x++) {
-		// 		drawPixel(x, y, screen[y][x].getColor());
-		// 		std::cout << screen[y][x] << std::endl;
-		// 	}
-		// }
-
-		// Place 20 random particles in the screen
-		for (int i = 0; i < 20; i++) {
-			int x = rand() % WINDOW_WIDTH;
-			int y = rand() % WINDOW_HEIGHT;
-			// Decide what random particle type to place
-			int type = rand() % 3;
-			switch (type) {
-			case 0:
-				screen[y][x] = Particle(Particle::SAND);
-				break;
-			case 1:
-				screen[y][x] = Particle(Particle::WATER);
-				break;
-			case 2:
-				screen[y][x] = Particle(Particle::ROCK);
-				break;
+		// Check if the mouse is currently being left clicked to add particles
+		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+			// Get the mouse position
+			double mouseX, mouseY;
+			glfwGetCursorPos(window, &mouseX, &mouseY);
+			// fill the area within 5 pixels of the mouse in a circle
+			for (int y = mouseY - 5; y <= mouseY + 5; y++) {
+				for (int x = mouseX - 5; x <= mouseX + 5; x++) {
+					if (x >= 0 && x < WINDOW_WIDTH && y >= 0 && y < WINDOW_HEIGHT) {
+						if ((x - mouseX) * (x - mouseX) + (y - mouseY) * (y - mouseY) <= 25) {
+							screen[y][x] = Particle(Particle::ROCK);
+						}
+					}
+				}
+			}
+		}
+		// Check if the mouse is currently being right clicked to erase particles
+		else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+			// Get the mouse position
+			double mouseX, mouseY;
+			glfwGetCursorPos(window, &mouseX, &mouseY);
+			// erase the area within 5 pixels of the mouse in a circle
+			for (int y = mouseY - 5; y <= mouseY + 5; y++) {
+				for (int x = mouseX - 5; x <= mouseX + 5; x++) {
+					if (x >= 0 && x < WINDOW_WIDTH && y >= 0 && y < WINDOW_HEIGHT) {
+						if ((x - mouseX) * (x - mouseX) + (y - mouseY) * (y - mouseY) <= 25) {
+							screen[y][x] = Particle();
+						}
+					}
+				}
 			}
 		}
 
@@ -281,12 +274,6 @@ int main() {
 				}
 			}
 		}
-
-		// // Draw a single pixel in the center of the screen
-		// glBegin(GL_POINTS);
-		// glColor3f(1.0f, 1.0f, 1.0f); // White color
-		// glVertex2f(0.0f, 0.0f);		 // Center of the screen in OpenGL's coordinate system
-		// glEnd();
 
 		// Swap buffers and poll events
 		glfwSwapBuffers(window);
