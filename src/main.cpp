@@ -151,9 +151,8 @@ void mouseEvents(GLFWwindow *window, Particle ***screen, Coord2D &prevMousePos, 
 	int curY = curMousePos.y;
 	// Hover - Draws a selection particle where the mouse is, on top of the particles layer
 	// First clear the selection particle from the position the mouse was at right before this
-	// FIXME: If decreasing brush size while also moving the mouse, artifacts are left behind. Perhaps this could be fixed by keeping track of what the brush size was on the last frame.
 	if (prevX >= 0 && prevX < WINDOW_WIDTH && prevY >= 0 && prevY < WINDOW_HEIGHT)
-		clearSelection(screen, prevX, prevY, brushSize);
+		clearSelection(screen, prevX, prevY, brushSize + 1); // Brush size + 1 to clear the selection particle from the previous mouse position, which could have been larger than the current brush size
 	// Then set the selection particle at the current mouse position
 	if (curX >= 0 && curX < WINDOW_WIDTH && curY >= 0 && curY < WINDOW_HEIGHT)
 		brushStroke(screen, curX, curY, brushSize, Particle::SELECTION, true);
