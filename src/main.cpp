@@ -122,7 +122,28 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
 
-void mouseEvents(GLFWwindow *window, Particle ***screen, Coord2D &prevMousePos, Coord2D curMousePos) {
+// BrushStroke - draws particles in a circle around the given coordinates
+void brushStroke(Particle ***screen, int x, int y, int brushSize, Particle::Type type, bool selection = false) {
+	int layer = 1;
+	if (selection)
+		layer = 2;
+	// fill the area within 5 pixels of the mouse in a circle - hardcoded for now to test
+	for (int brushY = y - brushSize; brushY <= y + brushSize; brushY++) {
+		for (int brushX = x - brushSize; brushX <= x + brushSize; brushX++) {
+			if (brushX >= 0 && brushX < WINDOW_WIDTH && brushY >= 0 && brushY < WINDOW_HEIGHT) {
+				if ((brushX - x) * (brushX - x) + (brushY - y) * (brushY - y) <= brushSize * brushSize)
+					screen[brushY][brushX][layer] = Particle(type);
+			}
+		}
+	}
+}
+
+// clearSelection - clears the selection particle from the given coordinates
+void clearSelection(Particle ***screen, int x, int y, int brushSize) {
+	brushStroke(screen, x, y, brushSize, Particle::EMPTY, true);
+}
+
+void mouseEvents(GLFWwindow *window, Particle ***screen, Coord2D &prevMousePos, Coord2D curMousePos, int brushSize) {
 	// Separate the previous and current mouse positions into x and y coordinates
 	int prevX = prevMousePos.x;
 	int prevY = prevMousePos.y;
@@ -131,10 +152,10 @@ void mouseEvents(GLFWwindow *window, Particle ***screen, Coord2D &prevMousePos, 
 	// Hover - Draws a selection particle where the mouse is, on top of the particles layer
 	// First clear the selection particle from the position the mouse was at right before this
 	if (prevX >= 0 && prevX < WINDOW_WIDTH && prevY >= 0 && prevY < WINDOW_HEIGHT)
-		screen[prevY][prevX][2] = Particle();
+		clearSelection(screen, prevX, prevY, brushSize);
 	// Then set the selection particle at the current mouse position
 	if (curX >= 0 && curX < WINDOW_WIDTH && curY >= 0 && curY < WINDOW_HEIGHT)
-		screen[curY][curX][2] = Particle(Particle::SELECTION);
+		brushStroke(screen, curX, curY, brushSize, Particle::SELECTION, true);
 
 	// Left Click - Draws Rock particles where the mouse is. Interpolate between the previous and current mouse positions to draw a line
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
@@ -147,7 +168,7 @@ void mouseEvents(GLFWwindow *window, Particle ***screen, Coord2D &prevMousePos, 
 			int x = prevX + dx * i / steps;
 			int y = prevY + dy * i / steps;
 			if (x >= 0 && x < WINDOW_WIDTH && y >= 0 && y < WINDOW_HEIGHT) {
-				screen[y][x][1] = Particle(Particle::ROCK);
+				brushStroke(screen, x, y, brushSize, Particle::ROCK);
 			}
 		}
 
@@ -163,7 +184,7 @@ void mouseEvents(GLFWwindow *window, Particle ***screen, Coord2D &prevMousePos, 
 			int x = prevX + dx * i / steps;
 			int y = prevY + dy * i / steps;
 			if (x >= 0 && x < WINDOW_WIDTH && y >= 0 && y < WINDOW_HEIGHT) {
-				screen[y][x][1] = Particle();
+				brushStroke(screen, x, y, brushSize, Particle::EMPTY);
 			}
 		}
 	}
@@ -209,6 +230,8 @@ int main() {
 
 	// Keep track of the previous mouse position
 	Coord2D prevMousePos = Coord2D(0, 0);
+	// Keep track of how big the user wants the brush to be
+	int brushSize = 1;
 
 	// Main loop
 	while (!glfwWindowShouldClose(window)) {
@@ -223,8 +246,16 @@ int main() {
 		glfwGetCursorPos(window, &mouseX, &mouseY);
 		Coord2D curMousePos = Coord2D(mouseX, mouseY);
 
+		// Check if the = key is pressed to increase the brush size, and the - key is pressed to decrease the brush size
+		if (glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS) {
+			brushSize++;
+		} else if (glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS && brushSize > 1) {
+			clearSelection(screen, curMousePos.x, curMousePos.y, brushSize);
+			brushSize--;
+		}
+
 		// Deal with mouse events - left click, right click, hovering, etc.
-		mouseEvents(window, screen, prevMousePos, curMousePos);
+		mouseEvents(window, screen, prevMousePos, curMousePos, brushSize);
 
 		// Render all non empty particles
 		for (int y = 0; y < WINDOW_HEIGHT; y++) {
