@@ -11,6 +11,10 @@ const int WINDOW_WIDTH = 1280;
 const int WINDOW_HEIGHT = 720;
 // this resolution is 16:9
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Classes
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // Particle Class - Represents a single particle, size of 1 pixel
 class Particle {
 public:
@@ -18,6 +22,7 @@ public:
 	enum Type { EMPTY,
 				SAND,
 				WATER,
+				SELECTION,
 				ROCK };
 
 	// Color struct - Represents a color with RGB values
@@ -50,13 +55,15 @@ public:
 	Color getColor() const {
 		switch (type) {
 		case SAND:
-			return Color(1.0f, 0.8f, 0.0f); // Yellow
+			return Color(1.0f, 0.8f, 0.0f); // Yellow - Hex #FFFF00
 		case WATER:
-			return Color(0.0f, 0.0f, 1.0f); // Blue
+			return Color(0.0f, 0.0f, 1.0f); // Blue - Hex #0000FF
 		case ROCK:
-			return Color(0.5f, 0.5f, 0.5f); // Gray
+			return Color(0.5f, 0.5f, 0.5f); // Gray - Hex #7F7F7F
+		case SELECTION:
+			return Color(0.5f, 1.0f, 0.5f); // Green - Hex #7FFF7F
 		default:
-			return Color(1.0f, 0.0f, 0.0f); // red
+			return Color(1.0f, 0.0f, 0.0f); // red - Hex #FF0000
 		}
 	}
 
@@ -72,6 +79,8 @@ public:
 			return "Water";
 		case ROCK:
 			return "Rock";
+		case SELECTION:
+			return "Selection";
 		default:
 			return "Empty";
 		}
@@ -80,6 +89,17 @@ public:
 private:
 	Type type;
 };
+
+class Coord2D {
+public:
+	double x, y;
+	Coord2D(double x, double y) : x(x), y(y) {
+	}
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Helper Functions
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Draw a pixel at the given coordinates with the given color
 void drawPixel(int x, int y, Particle::Color color) {
@@ -102,99 +122,59 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
 
+void mouseEvents(GLFWwindow *window, Particle ***screen, Coord2D &prevMousePos, Coord2D curMousePos) {
+	// Separate the previous and current mouse positions into x and y coordinates
+	int prevX = prevMousePos.x;
+	int prevY = prevMousePos.y;
+	int curX = curMousePos.x;
+	int curY = curMousePos.y;
+	// Hover - Draws a selection particle where the mouse is, on top of the particles layer
+	// First clear the selection particle from the position the mouse was at right before this
+	if (prevX >= 0 && prevX < WINDOW_WIDTH && prevY >= 0 && prevY < WINDOW_HEIGHT)
+		screen[prevY][prevX][2] = Particle();
+	// Then set the selection particle at the current mouse position
+	if (curX >= 0 && curX < WINDOW_WIDTH && curY >= 0 && curY < WINDOW_HEIGHT)
+		screen[curY][curX][2] = Particle(Particle::SELECTION);
+
+	// Left Click - Draws Rock particles where the mouse is. Interpolate between the previous and current mouse positions to draw a line
+	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+		int dx = curX - prevX;
+		int dy = curY - prevY;
+		int steps = max(abs(dx), abs(dy));
+		for (int i = 0; i <= steps; i++) {
+			if (steps == 0)
+				break;
+			int x = prevX + dx * i / steps;
+			int y = prevY + dy * i / steps;
+			if (x >= 0 && x < WINDOW_WIDTH && y >= 0 && y < WINDOW_HEIGHT) {
+				screen[y][x][1] = Particle(Particle::ROCK);
+			}
+		}
+
+	}
+	// Right Click - Erases particles where the mouse is. Interpolate between the previous and current mouse positions to draw a line
+	else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+		int dx = curX - prevX;
+		int dy = curY - prevY;
+		int steps = max(abs(dx), abs(dy));
+		for (int i = 0; i <= steps; i++) {
+			if (steps == 0)
+				break;
+			int x = prevX + dx * i / steps;
+			int y = prevY + dy * i / steps;
+			if (x >= 0 && x < WINDOW_WIDTH && y >= 0 && y < WINDOW_HEIGHT) {
+				screen[y][x][1] = Particle();
+			}
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// End of Helper Functions
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // Main function
 int main() {
-	// // Initialize GLFW
-	// if (!glfwInit()) {
-	// 	cout << "Failed to initialize GLFW" << endl;
-	// 	return -1;
-	// }
-	// // Get screen resolution
-	// const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-	// const int SCREEN_WIDTH = mode->width;
-	// const int SCREEN_HEIGHT = mode->height;
-	// std::cout << "Screen resolution: " << SCREEN_WIDTH << "x" << SCREEN_HEIGHT << std::endl;
-	// std::cout << "Window resolution: " << WINDOW_WIDTH << "x" << WINDOW_HEIGHT << std::endl;
-	// // Set GLFW window properties
-	// glfwWindowHint(GLFW_SAMPLES, 4);
-	// glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	// glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	// glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	// GLFWwindow *window;
-	// // Create GLFW window
-	// window =
-	// 	glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Open Dunes", NULL, NULL);
-	// if (window == NULL) {
-	// 	cout << "Failed to open GLFW window" << endl;
-	// 	return -1;
-	// }
-	// // Make the window's context the current one
-	// glfwMakeContextCurrent(window);
-
-	// // Initialize GLAD
-	// if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-	// 	cout << "Failed to initialize GLAD" << endl;
-	// 	return -1;
-	// }
-
-	// // Set the viewport
-	// glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-	// glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
-	// // Change the position the window is originally placed at to be in the center of the screen
-	// glfwSetWindowPos(window, (SCREEN_WIDTH - WINDOW_WIDTH) / 2, (SCREEN_HEIGHT - WINDOW_HEIGHT) / 2);
-
-	// // // Create a 2D array of pixels to represent the screen
-	// // Particle screen[WINDOW_HEIGHT][WINDOW_WIDTH];
-	// // // Initialize the screen to be empty
-	// // for (int y = 0; y < WINDOW_HEIGHT; y++) {
-	// // 	for (int x = 0; x < WINDOW_WIDTH; x++) {
-	// // 		screen[y][x] = Particle();
-	// // 	}
-	// // }
-
-	// // Main loop
-	// while (!glfwWindowShouldClose(window)) {
-	// 	// // First clear the screen
-	// 	// glClear(GL_COLOR_BUFFER_BIT);
-	// 	// // First update particle positions
-	// 	// for (int y = 0; y < WINDOW_HEIGHT; y++) {
-	// 	// 	for (int x = 0; x < WINDOW_WIDTH; x++) {
-	// 	// 		Particle *above = y > 0 ? &screen[y - 1][x] : nullptr;
-	// 	// 		Particle *below = y < WINDOW_HEIGHT - 1 ? &screen[y + 1][x] : nullptr;
-	// 	// 		Particle *left = x > 0 ? &screen[y][x - 1] : nullptr;
-	// 	// 		Particle *right = x < WINDOW_WIDTH - 1 ? &screen[y][x + 1] : nullptr;
-
-	// 	// 		screen[y][x].update(above, below, left, right);
-	// 	// 	}
-	// 	// }
-
-	// 	// // Then render the particles
-	// 	// for (int y = 0; y < WINDOW_HEIGHT; y++) {
-	// 	// 	for (int x = 0; x < WINDOW_WIDTH; x++) {
-	// 	// 		drawPixel(x, y, screen[y][x].getColor());
-	// 	// 		std::cout << screen[y][x] << std::endl;
-	// 	// 	}
-	// 	// }
-
-	// 	// Clear the screen
-	// 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	// 	glClear(GL_COLOR_BUFFER_BIT);
-
-	// 	// Draw a single pixel in the center of the screen
-	// 	glBegin(GL_POINTS);
-	// 	glColor3f(1.0f, 1.0f, 1.0f); // White color
-	// 	glVertex2f(0.0f, 0.0f);		 // Center of the screen in OpenGL's coordinate system
-	// 	glEnd();
-
-	// 	glfwSwapBuffers(window);
-	// 	glfwPollEvents();
-	// }
-
-	// // Terminate GLFW
-	// glfwTerminate();
-	// return 0;
-
 	// Initialize GLFW and create a window
 	glfwInit();
 	GLFWwindow *window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My Window", NULL, NULL);
@@ -215,65 +195,50 @@ int main() {
 	glLoadIdentity();
 	glOrtho(0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, 1);
 
-	// Create a 2D array of pixels to represent the screen
-	Particle **screen = new Particle *[WINDOW_HEIGHT];
-	// Initialize the screen to be empty
+	// Create a 3D array of pixels to represent the screen, with a depth of 3 to include a layer over the screen and one behind it
+	Particle ***screen = new Particle **[WINDOW_HEIGHT];
 	for (int y = 0; y < WINDOW_HEIGHT; y++) {
-		screen[y] = new Particle[WINDOW_WIDTH];
+		screen[y] = new Particle *[WINDOW_WIDTH];
 		for (int x = 0; x < WINDOW_WIDTH; x++) {
-			screen[y][x] = Particle();
+			screen[y][x] = new Particle[3];
+			screen[y][x][0] = Particle();
+			screen[y][x][1] = Particle();
+			screen[y][x][2] = Particle();
 		}
 	}
+
+	// Keep track of the previous mouse position
+	Coord2D prevMousePos = Coord2D(0, 0);
 
 	// Main loop
 	while (!glfwWindowShouldClose(window)) {
 		// Set background color to dark blue
-		Particle::Color bgColor = hexToColor(0x0b0c1e);
+		Particle::Color bgColor = hexToColor(0x0b0c1e); // Dark Blue - Hex #0B0C1E
 		// Clear the screen
 		glClearColor(bgColor.r, bgColor.g, bgColor.b, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		// Check if the mouse is currently being left clicked to add particles
-		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-			// Get the mouse position
-			double mouseX, mouseY;
-			glfwGetCursorPos(window, &mouseX, &mouseY);
-			// fill the area within 5 pixels of the mouse in a circle
-			for (int y = mouseY - 5; y <= mouseY + 5; y++) {
-				for (int x = mouseX - 5; x <= mouseX + 5; x++) {
-					if (x >= 0 && x < WINDOW_WIDTH && y >= 0 && y < WINDOW_HEIGHT) {
-						if ((x - mouseX) * (x - mouseX) + (y - mouseY) * (y - mouseY) <= 25) {
-							screen[y][x] = Particle(Particle::ROCK);
-						}
-					}
-				}
-			}
-		}
-		// Check if the mouse is currently being right clicked to erase particles
-		else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
-			// Get the mouse position
-			double mouseX, mouseY;
-			glfwGetCursorPos(window, &mouseX, &mouseY);
-			// erase the area within 5 pixels of the mouse in a circle
-			for (int y = mouseY - 5; y <= mouseY + 5; y++) {
-				for (int x = mouseX - 5; x <= mouseX + 5; x++) {
-					if (x >= 0 && x < WINDOW_WIDTH && y >= 0 && y < WINDOW_HEIGHT) {
-						if ((x - mouseX) * (x - mouseX) + (y - mouseY) * (y - mouseY) <= 25) {
-							screen[y][x] = Particle();
-						}
+		// Get the current mouse position
+		double mouseX, mouseY;
+		glfwGetCursorPos(window, &mouseX, &mouseY);
+		Coord2D curMousePos = Coord2D(mouseX, mouseY);
+
+		// Deal with mouse events - left click, right click, hovering, etc.
+		mouseEvents(window, screen, prevMousePos, curMousePos);
+
+		// Render all non empty particles
+		for (int y = 0; y < WINDOW_HEIGHT; y++) {
+			for (int x = 0; x < WINDOW_WIDTH; x++) {
+				for (int z = 0; z < 3; z++) {
+					if (screen[y][x][z].getType() != Particle::EMPTY) {
+						drawPixel(x, y, screen[y][x][z].getColor());
 					}
 				}
 			}
 		}
 
-		// Render all non empty particles
-		for (int y = 0; y < WINDOW_HEIGHT; y++) {
-			for (int x = 0; x < WINDOW_WIDTH; x++) {
-				if (screen[y][x].getType() != Particle::EMPTY) {
-					drawPixel(x, y, screen[y][x].getColor());
-				}
-			}
-		}
+		// Update the previous mouse position
+		prevMousePos = curMousePos;
 
 		// Swap buffers and poll events
 		glfwSwapBuffers(window);
