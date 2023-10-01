@@ -151,6 +151,7 @@ void mouseEvents(GLFWwindow *window, Particle ***screen, Coord2D &prevMousePos, 
 	int curY = curMousePos.y;
 	// Hover - Draws a selection particle where the mouse is, on top of the particles layer
 	// First clear the selection particle from the position the mouse was at right before this
+	// FIXME: If decreasing brush size while also moving the mouse, artifacts are left behind. Perhaps this could be fixed by keeping track of what the brush size was on the last frame.
 	if (prevX >= 0 && prevX < WINDOW_WIDTH && prevY >= 0 && prevY < WINDOW_HEIGHT)
 		clearSelection(screen, prevX, prevY, brushSize);
 	// Then set the selection particle at the current mouse position
@@ -230,8 +231,9 @@ int main() {
 
 	// Keep track of the previous mouse position
 	Coord2D prevMousePos = Coord2D(0, 0);
-	// Keep track of how big the user wants the brush to be
-	int brushSize = 1;
+	int brushSize = 1;	  // Keep track of how big the user wants the brush to be
+	int framesPassed = 0; // Keep track of how many frames have passed to limit brush size change rate
+	int frameCap = 15;	  // Limit the brush size change rate to once every 15 frames
 
 	// Main loop
 	while (!glfwWindowShouldClose(window)) {
@@ -247,11 +249,14 @@ int main() {
 		Coord2D curMousePos = Coord2D(mouseX, mouseY);
 
 		// Check if the = key is pressed to increase the brush size, and the - key is pressed to decrease the brush size
-		if (glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS) {
+		if (glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS && framesPassed >= frameCap) {
+			// IDEA: Consider making brush size increase/decrease exponentially instead of linearly
 			brushSize++;
-		} else if (glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS && brushSize > 1) {
+			framesPassed = 0;
+		} else if (glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS && brushSize > 1 && framesPassed >= frameCap) {
 			clearSelection(screen, curMousePos.x, curMousePos.y, brushSize);
 			brushSize--;
+			framesPassed = 0;
 		}
 
 		// Deal with mouse events - left click, right click, hovering, etc.
@@ -268,8 +273,9 @@ int main() {
 			}
 		}
 
-		// Update the previous mouse position
-		prevMousePos = curMousePos;
+		prevMousePos = curMousePos; // Update the previous mouse position
+		if (framesPassed < frameCap)
+			framesPassed++; // Increment the number of frames passed up to 10
 
 		// Swap buffers and poll events
 		glfwSwapBuffers(window);
