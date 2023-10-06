@@ -159,6 +159,8 @@ void mouseEvents(GLFWwindow *window, Particle ***screen, Coord2D &prevMousePos, 
 
 	// Left Click - Draws Rock particles where the mouse is. Interpolate between the previous and current mouse positions to draw a line
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+		// FIXME: A Left click is not detected when using tablet and drawing pen until the pen has been moved a certain distance.
+		// This is because the tablet is not sending mouse events, but rather tablet events. Need to find a way to detect tablet events and react accordingly.
 		int dx = curX - prevX;
 		int dy = curY - prevY;
 		int steps = max(abs(dx), abs(dy));
@@ -173,6 +175,7 @@ void mouseEvents(GLFWwindow *window, Particle ***screen, Coord2D &prevMousePos, 
 		}
 
 	}
+	// TODO: Replace this with a system where drawing, erasing, and any other cursor actions happen through left click, we just swap the state of the current cursor tool.
 	// Right Click - Erases particles where the mouse is. Interpolate between the previous and current mouse positions to draw a line
 	else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
 		int dx = curX - prevX;
@@ -198,7 +201,7 @@ void mouseEvents(GLFWwindow *window, Particle ***screen, Coord2D &prevMousePos, 
 int main() {
 	// Initialize GLFW and create a window
 	glfwInit();
-	GLFWwindow *window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My Window", NULL, NULL);
+	GLFWwindow *window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Open Dunes Project", NULL, NULL);
 	glfwMakeContextCurrent(window);
 
 	// Get screen resolution
@@ -222,9 +225,9 @@ int main() {
 		screen[y] = new Particle *[WINDOW_WIDTH];
 		for (int x = 0; x < WINDOW_WIDTH; x++) {
 			screen[y][x] = new Particle[3];
-			screen[y][x][0] = Particle();
-			screen[y][x][1] = Particle();
-			screen[y][x][2] = Particle();
+			screen[y][x][0] = Particle(); // Background layer
+			screen[y][x][1] = Particle(); // Main Particle layer
+			screen[y][x][2] = Particle(); // Selection layer
 		}
 	}
 
@@ -250,6 +253,7 @@ int main() {
 		// Check if the = key is pressed to increase the brush size, and the - key is pressed to decrease the brush size
 		if (glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS && framesPassed >= frameCap) {
 			// IDEA: Consider making brush size increase/decrease exponentially instead of linearly
+			// IDEA: Implement pen pressure sensitivity to change brush size using a drawing tablet
 			brushSize++;
 			framesPassed = 0;
 		} else if (glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS && brushSize > 1 && framesPassed >= frameCap) {
@@ -271,6 +275,11 @@ int main() {
 				}
 			}
 		}
+
+		// Draw UI
+		// TODO: Implement UI
+		// renderUI(window, brushSize);
+		//
 
 		prevMousePos = curMousePos; // Update the previous mouse position
 		if (framesPassed < frameCap)
