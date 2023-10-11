@@ -1,7 +1,8 @@
 #define GLFW_INCLUDE_NONE
+// #include "Color.h"
+// #include "Particle.h"
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
-
 #include <iostream>
 
 using namespace std;
@@ -16,7 +17,7 @@ const int WINDOW_HEIGHT = 720;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Particle Class - Represents a single particle, size of 1 pixel
-class Particle {
+class Prtcl {
 public:
 	// Particle types
 	enum Type { EMPTY,
@@ -38,16 +39,16 @@ public:
 	};
 
 	// Constructor - Sets the type of the particle to empty by default, otherwise sets the type to the given type
-	Particle(Type type = EMPTY) : type(type) {
+	Prtcl(Type type = EMPTY) : type(type) {
 	}
 
-	void update(Particle *above, Particle *below, Particle *left, Particle *right) {
+	void update(Prtcl *above, Prtcl *below, Prtcl *left, Prtcl *right) {
 		// TODO:
 		//  Update the particle based on what kind of particle it is
 	}
 
 	// make particle print out with cout
-	friend ostream &operator<<(ostream &os, const Particle &particle) {
+	friend ostream &operator<<(ostream &os, const Prtcl &particle) {
 		os << "Particle of Type " << particle.getTypeName() << " with color " << particle.getColor() << std::endl;
 		return os;
 	}
@@ -101,8 +102,12 @@ public:
 // Helper Functions
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Callback function for when the window is resized
+void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+	glViewport(0, 0, width, height);
+}
 // Draw a pixel at the given coordinates with the given color
-void drawPixel(int x, int y, Particle::Color color) {
+void drawPixel(int x, int y, Prtcl::Color color) {
 	glBegin(GL_POINTS);
 	glColor3f(color.r, color.g, color.b);
 	glVertex2f(x, y);
@@ -110,20 +115,15 @@ void drawPixel(int x, int y, Particle::Color color) {
 }
 
 // Function to take RGB value that is between 0 and 255 and convert it to a value between 0 and 1
-Particle::Color hexToColor(int hex) {
+Prtcl::Color hexToColor(int hex) {
 	float r = ((hex >> 16) & 0xFF) / 255.0f;
 	float g = ((hex >> 8) & 0xFF) / 255.0f;
 	float b = (hex & 0xFF) / 255.0f;
-	return Particle::Color(r, g, b);
-}
-
-// Callback function for when the window is resized
-void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
-	glViewport(0, 0, width, height);
+	return Prtcl::Color(r, g, b);
 }
 
 // BrushStroke - draws particles in a circle around the given coordinates
-void brushStroke(Particle ***screen, int x, int y, int brushSize, Particle::Type type, bool selection = false) {
+void brushStroke(Prtcl ***screen, int x, int y, int brushSize, Prtcl::Type type, bool selection = false) {
 	int layer = 1;
 	if (selection)
 		layer = 2;
@@ -132,18 +132,18 @@ void brushStroke(Particle ***screen, int x, int y, int brushSize, Particle::Type
 		for (int brushX = x - brushSize; brushX <= x + brushSize; brushX++) {
 			if (brushX >= 0 && brushX < WINDOW_WIDTH && brushY >= 0 && brushY < WINDOW_HEIGHT) {
 				if ((brushX - x) * (brushX - x) + (brushY - y) * (brushY - y) <= brushSize * brushSize)
-					screen[brushY][brushX][layer] = Particle(type);
+					screen[brushY][brushX][layer] = Prtcl(type);
 			}
 		}
 	}
 }
 
 // clearSelection - clears the selection particle from the given coordinates
-void clearSelection(Particle ***screen, int x, int y, int brushSize) {
-	brushStroke(screen, x, y, brushSize, Particle::EMPTY, true);
+void clearSelection(Prtcl ***screen, int x, int y, int brushSize) {
+	brushStroke(screen, x, y, brushSize, Prtcl::EMPTY, true);
 }
 
-void mouseEvents(GLFWwindow *window, Particle ***screen, Coord2D &prevMousePos, Coord2D curMousePos, int brushSize) {
+void mouseEvents(GLFWwindow *window, Prtcl ***screen, Coord2D &prevMousePos, Coord2D curMousePos, int brushSize) {
 	// Separate the previous and current mouse positions into x and y coordinates
 	int prevX = prevMousePos.x;
 	int prevY = prevMousePos.y;
@@ -155,7 +155,7 @@ void mouseEvents(GLFWwindow *window, Particle ***screen, Coord2D &prevMousePos, 
 		clearSelection(screen, prevX, prevY, brushSize + 1); // Brush size + 1 to clear the selection particle from the previous mouse position, which could have been larger than the current brush size
 	// Then set the selection particle at the current mouse position
 	if (curX >= 0 && curX < WINDOW_WIDTH && curY >= 0 && curY < WINDOW_HEIGHT)
-		brushStroke(screen, curX, curY, brushSize, Particle::SELECTION, true);
+		brushStroke(screen, curX, curY, brushSize, Prtcl::SELECTION, true);
 
 	// Left Click - Draws Rock particles where the mouse is. Interpolate between the previous and current mouse positions to draw a line
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
@@ -170,7 +170,7 @@ void mouseEvents(GLFWwindow *window, Particle ***screen, Coord2D &prevMousePos, 
 			int x = prevX + dx * i / steps;
 			int y = prevY + dy * i / steps;
 			if (x >= 0 && x < WINDOW_WIDTH && y >= 0 && y < WINDOW_HEIGHT) {
-				brushStroke(screen, x, y, brushSize, Particle::ROCK);
+				brushStroke(screen, x, y, brushSize, Prtcl::SAND);
 			}
 		}
 
@@ -187,7 +187,7 @@ void mouseEvents(GLFWwindow *window, Particle ***screen, Coord2D &prevMousePos, 
 			int x = prevX + dx * i / steps;
 			int y = prevY + dy * i / steps;
 			if (x >= 0 && x < WINDOW_WIDTH && y >= 0 && y < WINDOW_HEIGHT) {
-				brushStroke(screen, x, y, brushSize, Particle::EMPTY);
+				brushStroke(screen, x, y, brushSize, Prtcl::EMPTY);
 			}
 		}
 	}
@@ -220,14 +220,14 @@ int main() {
 	glOrtho(0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, 1);
 
 	// Create a 3D array of pixels to represent the screen, with a depth of 3 to include a layer over the screen and one behind it
-	Particle ***screen = new Particle **[WINDOW_HEIGHT];
+	Prtcl ***screen = new Prtcl **[WINDOW_HEIGHT];
 	for (int y = 0; y < WINDOW_HEIGHT; y++) {
-		screen[y] = new Particle *[WINDOW_WIDTH];
+		screen[y] = new Prtcl *[WINDOW_WIDTH];
 		for (int x = 0; x < WINDOW_WIDTH; x++) {
-			screen[y][x] = new Particle[3];
-			screen[y][x][0] = Particle(); // Background layer
-			screen[y][x][1] = Particle(); // Main Particle layer
-			screen[y][x][2] = Particle(); // Selection layer
+			screen[y][x] = new Prtcl[3];
+			screen[y][x][0] = Prtcl(); // Background layer
+			screen[y][x][1] = Prtcl(); // Main Particle layer
+			screen[y][x][2] = Prtcl(); // Selection layer
 		}
 	}
 
@@ -240,7 +240,7 @@ int main() {
 	// Main loop
 	while (!glfwWindowShouldClose(window)) {
 		// Set background color to dark blue
-		Particle::Color bgColor = hexToColor(0x0b0c1e); // Dark Blue - Hex #0B0C1E
+		Prtcl::Color bgColor = hexToColor(0x0b0c1e); // Dark Blue - Hex #0B0C1E
 		// Clear the screen
 		glClearColor(bgColor.r, bgColor.g, bgColor.b, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -269,7 +269,7 @@ int main() {
 		for (int y = 0; y < WINDOW_HEIGHT; y++) {
 			for (int x = 0; x < WINDOW_WIDTH; x++) {
 				for (int z = 0; z < 3; z++) {
-					if (screen[y][x][z].getType() != Particle::EMPTY) {
+					if (screen[y][x][z].getType() != Prtcl::EMPTY) {
 						drawPixel(x, y, screen[y][x][z].getColor());
 					}
 				}

@@ -27,3 +27,6 @@ The goal is to implement a version of a "falling sand" game using OpenGL while a
 - Implementation of flammable particles such as wood
 - Exploration of what Rigid bodies would look like in the falling sand world
 - Creation of a player character in the sandbox, with movement
+
+
+## Configure & Build using CMake, then launch executable.
