@@ -42,9 +42,25 @@ public:
 	Prtcl(Type type = EMPTY) : type(type) {
 	}
 
-	void update(Prtcl *above, Prtcl *below, Prtcl *left, Prtcl *right) {
+	void update(Prtcl *north, Prtcl *south, Prtcl *left, Prtcl *east, Prtcl *northWest, Prtcl *northEast, Prtcl *southWest, Prtcl *southEast) {
 		// TODO:
+		std::cout << "Particle is updating!" << std::endl;
 		//  Update the particle based on what kind of particle it is
+		if (type == SAND) {
+			std::cout << "Sand is updating!" << std::endl;
+			Prtcl *sandDirections[3] = {south, southWest, southEast}; // Directions sand can fall in
+			for (Prtcl *direction : sandDirections) {
+				if (direction != nullptr && (direction->type == EMPTY || direction->type == WATER)) {
+					std::cout << "Sand is falling!" << std::endl;
+					// Fall down
+					Prtcl temp = *direction;
+					*direction = *this;
+					*this = temp;
+					break;
+					// FIXME: This crashes if the sand reaches the bottom of the screen.
+				}
+			}
+		}
 	}
 
 	// make particle print out with cout
@@ -187,7 +203,7 @@ void mouseEvents(GLFWwindow *window, Prtcl ***screen, Coord2D &prevMousePos, Coo
 			int x = prevX + dx * i / steps;
 			int y = prevY + dy * i / steps;
 			if (x >= 0 && x < WINDOW_WIDTH && y >= 0 && y < WINDOW_HEIGHT) {
-				brushStroke(screen, x, y, brushSize, Prtcl::EMPTY);
+				brushStroke(screen, x, y, brushSize, Prtcl::ROCK);
 			}
 		}
 	}
@@ -264,6 +280,24 @@ int main() {
 
 		// Deal with mouse events - left click, right click, hovering, etc.
 		mouseEvents(window, screen, prevMousePos, curMousePos, brushSize);
+
+		// Update all particles
+		for (int y = 0; y < WINDOW_HEIGHT; y++) {
+			for (int x = 0; x < WINDOW_WIDTH; x++) {
+				if (screen[y][x][1].getType() != Prtcl::EMPTY) {
+					// Check if each direction is within the bounds of the screen, if not send a nullptr
+					Prtcl *north = (y - 1 >= 0 && y - 1 < WINDOW_HEIGHT && x >= 0 && x < WINDOW_WIDTH) ? &screen[y - 1][x][1] : nullptr;
+					Prtcl *south = (y + 1 >= 0 && y + 1 < WINDOW_HEIGHT && x >= 0 && x < WINDOW_WIDTH) ? &screen[y + 1][x][1] : nullptr;
+					Prtcl *left = (y >= 0 && y < WINDOW_HEIGHT && x - 1 >= 0 && x - 1 < WINDOW_WIDTH) ? &screen[y][x - 1][1] : nullptr;
+					Prtcl *right = (y >= 0 && y < WINDOW_HEIGHT && x + 1 >= 0 && x + 1 < WINDOW_WIDTH) ? &screen[y][x + 1][1] : nullptr;
+					Prtcl *northWest = (y - 1 >= 0 && y - 1 < WINDOW_HEIGHT && x - 1 >= 0 && x - 1 < WINDOW_WIDTH) ? &screen[y - 1][x - 1][1] : nullptr;
+					Prtcl *northEast = (y - 1 >= 0 && y - 1 < WINDOW_HEIGHT && x + 1 >= 0 && x + 1 < WINDOW_WIDTH) ? &screen[y - 1][x + 1][1] : nullptr;
+					Prtcl *southWest = (y + 1 >= 0 && y + 1 < WINDOW_HEIGHT && x - 1 >= 0 && x - 1 < WINDOW_WIDTH) ? &screen[y + 1][x - 1][1] : nullptr;
+					Prtcl *southEast = (y + 1 >= 0 && y + 1 < WINDOW_HEIGHT && x + 1 >= 0 && x + 1 < WINDOW_WIDTH) ? &screen[y + 1][x + 1][1] : nullptr;
+					screen[y][x][1].update(north, south, left, right, northWest, northEast, southWest, southEast);
+				}
+			}
+		}
 
 		// Render all non empty particles
 		for (int y = 0; y < WINDOW_HEIGHT; y++) {
