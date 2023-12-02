@@ -44,20 +44,20 @@ public:
 
 	void update(Prtcl *north, Prtcl *south, Prtcl *left, Prtcl *east, Prtcl *northWest, Prtcl *northEast, Prtcl *southWest, Prtcl *southEast) {
 		// TODO:
-		std::cout << "Particle is updating!" << std::endl;
+		// std::cout << "Particle is updating!" << std::endl;
 		//  Update the particle based on what kind of particle it is
 		if (type == SAND) {
-			std::cout << "Sand is updating!" << std::endl;
+			// std::cout << "Sand is updating!" << std::endl;
 			Prtcl *sandDirections[3] = {south, southWest, southEast}; // Directions sand can fall in
 			for (Prtcl *direction : sandDirections) {
 				if (direction != nullptr && (direction->type == EMPTY || direction->type == WATER)) {
-					std::cout << "Sand is falling!" << std::endl;
+					// std::cout << "Sand is falling!" << std::endl;
 					// Fall down
 					Prtcl temp = *direction;
 					*direction = *this;
 					*this = temp;
 					break;
-					// FIXME: This crashes if the sand reaches the bottom of the screen.
+					// DONE: This crashes if the sand reaches the bottom of the screen.
 				}
 			}
 		}
@@ -282,8 +282,8 @@ int main() {
 		mouseEvents(window, screen, prevMousePos, curMousePos, brushSize);
 
 		// Update all particles
-		for (int y = 0; y < WINDOW_HEIGHT; y++) {
-			for (int x = 0; x < WINDOW_WIDTH; x++) {
+		for (int y = WINDOW_HEIGHT - 1; y >= 0; y--) {
+			for (int x = WINDOW_WIDTH - 1; x >= 0; x--) {
 				if (screen[y][x][1].getType() != Prtcl::EMPTY) {
 					// Check if each direction is within the bounds of the screen, if not send a nullptr
 					Prtcl *north = (y - 1 >= 0 && y - 1 < WINDOW_HEIGHT && x >= 0 && x < WINDOW_WIDTH) ? &screen[y - 1][x][1] : nullptr;
@@ -327,3 +327,6 @@ int main() {
 	// Terminate GLFW
 	glfwTerminate();
 }
+
+// TODO: Improve sand by randomizing the first direction it tries to fall in before trying the opposite. This will make it look more natural.
+// TODO: Speed up the rate at which sand falls.
