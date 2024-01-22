@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 #include <iostream>
+#include <random>
 
 using namespace std;
 
@@ -47,8 +48,14 @@ public:
 		// std::cout << "Particle is updating!" << std::endl;
 		//  Update the particle based on what kind of particle it is
 		if (type == SAND) {
-			// std::cout << "Sand is updating!" << std::endl;
-			Prtcl *sandDirections[3] = {south, southWest, southEast}; // Directions sand can fall in
+			// Randomize the direction the sand falls in
+			std::random_device rd;
+			std::mt19937 gen(rd());
+			std::uniform_int_distribution<> dis(0, 1);
+			Prtcl *sandDirections[3];
+			sandDirections[0] = south;
+			sandDirections[1] = (dis(gen) == 0) ? southWest : southEast;
+			sandDirections[2] = (dis(gen) == 0) ? southEast : southWest;
 			for (Prtcl *direction : sandDirections) {
 				if (direction != nullptr && (direction->type == EMPTY || direction->type == WATER)) {
 					// std::cout << "Sand is falling!" << std::endl;
